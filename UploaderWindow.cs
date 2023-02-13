@@ -9,7 +9,8 @@ using System;
 
 public class UploaderWindow : EditorWindow
 {
-    struct SceneUI {
+    struct SceneUI
+    {
         public string Text { get; set; }
         public string Priority { get; set; }
         public EditorBuildSettingsScene Scene { get; set; }
@@ -17,7 +18,7 @@ public class UploaderWindow : EditorWindow
 
     private List<SceneUI> sceneUIs = new List<SceneUI>();
     private SceneAsset sceneAsset = null;
-    private string gameName = "Game Name Here";
+    private string gameName = "Enter Game Name";
 
     private static string GAME_ID = null;
     public static readonly string[] DESIRED_ARTIFACTS = new string[] {
@@ -32,16 +33,16 @@ public class UploaderWindow : EditorWindow
     [MenuItem("Final Parsec/Upload Game")]
     public static void CreateUploader()
     {
-        #if UNITY_2020_3_OR_NEWER
+#if UNITY_2020_3_OR_NEWER
         
         PlayerSettings.WebGL.decompressionFallback = true;
         EditorWindow.GetWindow<UploaderWindow>(false, "Final Parsec");
         
-        #else
+#else
 
         Debug.Log("Final Parsec Uploader requires 2020.3 or newer. Please upgrade to use this asset.");
 
-        #endif
+#endif
     }
 
     public void BuildForWeb()
@@ -60,7 +61,7 @@ public class UploaderWindow : EditorWindow
             scenes = scenesToInclude.ToArray(),
             locationPathName = "FinalParsecStaging/",
             target = BuildTarget.WebGL,
-            options = BuildOptions.None            
+            options = BuildOptions.None
         };
 
         var report = BuildPipeline.BuildPlayer(buildPlayerOptions);
@@ -77,19 +78,12 @@ public class UploaderWindow : EditorWindow
                 if (DESIRED_ARTIFACTS.Contains(buildFile.role))
                 {
                     desiredBuildFiles.Add(buildFile.path);
-                    Debug.Log($"Including file {buildFile.path}");
+                    Debug.Log(buildFile.path);
                 }
             }
 
-            if (desiredBuildFiles.Any())
-            {
-                Debug.Log("Beginning upload to Final Parsec.");
-                Upload(desiredBuildFiles);
-            }
-            else
-            {
-                Debug.LogError("Skipping upload to Final Parsec. No desired artifacts for upload found.");
-            }
+            Debug.Log("Beginning upload to Final Parsec.");
+            Upload(desiredBuildFiles);
         }
 
         if (summary.result == BuildResult.Failed)
@@ -100,7 +94,7 @@ public class UploaderWindow : EditorWindow
 
     public void Upload(List<string> filesToUpload)
     {
-        #if UNITY_2020_3_OR_NEWER
+#if UNITY_2020_3_OR_NEWER
 
         var formData = new List<IMultipartFormSection>();
         formData.Add(new MultipartFormDataSection("gameName", gameName));
@@ -124,6 +118,7 @@ public class UploaderWindow : EditorWindow
             Debug.Log("Game ID: " + request.downloadHandler.text);
             Debug.Log("Upload response: " + request.responseCode);
             Debug.Log("Upload result: " + request.result);
+            Debug.Log("Upload error: " + request.error);
         }
         else
         {
@@ -132,11 +127,13 @@ public class UploaderWindow : EditorWindow
             Debug.Log("Upload error: " + request.error);
         }
 
-        #endif
+#endif
     }
 
     public void OnGUI()
     {
+        this.minSize = new Vector2(475, 300);
+
         // SETUP
         sceneUIs.Clear();
         var priority = 0;
@@ -152,17 +149,32 @@ public class UploaderWindow : EditorWindow
 
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
 
+        GUILayout.Space(16);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.FlexibleSpace();
+
+        var docsUrl = "https://www.finalparsec.com/Blog/ViewPost/final-parsec-upload";
+        if (GUILayout.Button("Click here to learn how to use the uploader!"))
+        {
+            Application.OpenURL(docsUrl);
+        }
+        GUILayout.FlexibleSpace();
+        GUILayout.EndHorizontal();
+
+        GUILayout.Space(16);
+
+        GUILayout.BeginVertical("HelpBox");
+        GUILayout.Space(4);
+
         EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField("Game Name");
         gameName = EditorGUILayout.TextField(gameName);
         EditorGUILayout.EndHorizontal();
 
-        GUILayout.Space(8);
-
         GUILayout.Label("Select Scenes to include in build:", EditorStyles.boldLabel);
 
         GUILayout.Space(8);
-
         EditorGUI.indentLevel++;
         foreach (var sceneUI in sceneUIs)
         {
@@ -180,29 +192,40 @@ public class UploaderWindow : EditorWindow
         }
 
         GUILayout.Space(8);
-
+        EditorGUI.indentLevel--;
+        GUILayout.BeginHorizontal();
+        EditorGUILayout.LabelField("Scene to add:", GUILayout.Width(90));
         sceneAsset = (SceneAsset)EditorGUILayout.ObjectField(sceneAsset, typeof(SceneAsset), false);
-        if (GUILayout.Button("Add") && sceneAsset != null)
+        GUILayout.EndHorizontal();
+
+        GUILayout.Space(8);
+
+        // Scene Add/Manage Buttons
+        GUILayout.BeginHorizontal();
+        GUILayout.FlexibleSpace();
+
+        if (GUILayout.Button("Add", GUILayout.Width(80)) && sceneAsset != null)
         {
             AddSceneAsset(sceneAsset);
         }
 
-        EditorGUI.indentLevel--;
 
-        GUILayout.Space(16);
-        GUILayout.Label("OR", EditorStyles.boldLabel);
-        GUILayout.Space(16);
+        GUILayout.Space(8);
 
         EditorGUI.indentLevel++;
-        if (GUILayout.Button("Manage Scenes In Build Settings"))
+        if (GUILayout.Button("Manage Scenes In Build Settings", GUILayout.Width(200)))
         {
             EditorWindow.GetWindow(Type.GetType("UnityEditor.BuildPlayerWindow,UnityEditor"));
         }
+        GUILayout.EndHorizontal();
+
+        GUILayout.Space(4);
+        GUILayout.EndVertical();
+
+        // Upload Game
         EditorGUI.indentLevel--;
 
-        GUILayout.Space(16);
-
-        GUILayout.Label("-------", EditorStyles.boldLabel);
+        GUILayout.Space(8);
         if (GUILayout.Button("Upload Game"))
         {
             BuildForWeb();
@@ -210,21 +233,15 @@ public class UploaderWindow : EditorWindow
 
         if (!string.IsNullOrEmpty(UploaderWindow.GAME_ID))
         {
+            GUILayout.Space(8);
+            GUI.backgroundColor = Color.green;
             var anonPlayUrl = $"https://www.finalparsec.com/Game/AnonymousPlay/{UploaderWindow.GAME_ID}";
-            EditorGUILayout.SelectableLabel($"Play your game at: {anonPlayUrl}");
-            if (GUILayout.Button("Play your game now"))
+            if (GUILayout.Button("Play your game now", GUILayout.Height(30)))
             {
                 Application.OpenURL(anonPlayUrl);
             }
         }
 
-        GUILayout.Label("-------", EditorStyles.boldLabel);
-        var docsUrl = "https://www.finalparsec.com/Blog/ViewPost/final-parsec-upload";
-        EditorGUILayout.SelectableLabel($"Read the docs at: {docsUrl}");
-        if (GUILayout.Button("Uploader Documentation"))
-        {
-            Application.OpenURL(docsUrl);
-        }
 
         EditorGUILayout.EndScrollView();
     }
@@ -244,7 +261,7 @@ public class UploaderWindow : EditorWindow
             !sceneUIs.Any(sceneUI => sceneUI.Scene.path == scenePath))
         {
             var newScene = new EditorBuildSettingsScene(scenePath, true);
-            sceneUIs.Add(new SceneUI 
+            sceneUIs.Add(new SceneUI
             {
                 Text = newScene.path,
                 Priority = "",
