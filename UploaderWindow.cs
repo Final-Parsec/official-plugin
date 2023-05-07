@@ -80,12 +80,19 @@ public class UploaderWindow : EditorWindow
                 if (DESIRED_ARTIFACTS.Contains(buildFile.role))
                 {
                     desiredBuildFiles.Add(buildFile.path);
-                    Debug.Log(buildFile.path);
+                    Debug.Log($"Including file {buildFile.path}");
                 }
             }
 
-            Debug.Log("Beginning upload to Final Parsec.");
-            Upload(desiredBuildFiles);
+            if (desiredBuildFiles.Any())
+            {
+                Debug.Log("Beginning upload to Final Parsec.");
+                Upload(desiredBuildFiles);
+            }
+            else
+            {
+                Debug.LogError("Skipping upload to Final Parsec. No desired artifacts for upload found.");
+            }
         }
 
         if (summary.result == BuildResult.Failed)
