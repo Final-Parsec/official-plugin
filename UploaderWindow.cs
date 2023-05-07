@@ -77,7 +77,7 @@ public class UploaderWindow : EditorWindow
             var desiredBuildFiles = new List<string>();
             foreach (var buildFile in buildFiles)
             {
-                if (DESIRED_ARTIFACTS.Contains(buildFile.role))
+                if (IsDesiredArtifact(buildFile))
                 {
                     desiredBuildFiles.Add(buildFile.path);
                     Debug.Log($"Including file {buildFile.path}");
